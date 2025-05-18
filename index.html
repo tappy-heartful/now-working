@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>労働中</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 30px;
+      color: #2c3e50;
+    }
+
+    #amount {
+      font-size: 3em;
+      font-weight: bold;
+      margin: 20px 0 30px;
+      color: #27ae60;
+    }
+
+    input[type="number"] {
+      padding: 12px 15px;
+      font-size: 1.1em;
+      width: 200px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      transition: border 0.2s;
+    }
+
+    input[type="number"]:focus {
+      border-color: #3498db;
+      outline: none;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 1.1em;
+      border: none;
+      border-radius: 8px;
+      background: #3498db;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin: 5px;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    #setup, #working {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      min-width: 300px;
+      text-align: center;
+    }
+
+    label {
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>労働中 💼</h1>
+
+  <div id="setup">
+    <label for="wage">時給（円）</label><br>
+    <input type="number" id="wage" min="0" placeholder="例: 1500" /><br>
+    <button onclick="startWork()">スタート</button>
+  </div>
+
+  <div id="working" style="display: none;">
+    <div id="amount">¥0</div>
+    <div class="button-row">
+      <button id="pauseBtn" onclick="pauseWork()">⏸ 一時停止</button>
+      <button id="resumeBtn" onclick="resumeWork()" style="display: none;">▶️ 再開</button>
+      <button onclick="stopWork()">⏹ ストップ</button>
+    </div>
+  </div>
+
+  <script>
+    const LS_KEY_START = 'startTime';
+    const LS_KEY_WAGE = 'hourlyWage';
+    const LS_KEY_ACCUMULATED = 'accumulatedTime';
+
+    let intervalId = null;
+
+    window.onload = () => {
+      const startTime = localStorage.getItem(LS_KEY_START);
+      const wage = localStorage.getItem(LS_KEY_WAGE);
+      const accumulated = localStorage.getItem(LS_KEY_ACCUMULATED) || 0;
+
+      if (wage && (startTime || accumulated > 0)) {
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('working').style.display = 'block';
+
+        if (startTime) {
+          startTimer(Number(wage), Number(startTime), Number(accumulated));
+          showPause();
+        } else {
+          updateAmountDisplay(Number(wage), Number(accumulated));
+          showResume();
+        }
+      }
+    };
+
+    function startWork() {
+      const wageInput = document.getElementById('wage');
+      const wage = Number(wageInput.value);
+      if (!wage || wage <= 0) {
+        alert("有効な時給を入力してください");
+        return;
+      }
+
+      const startTime = Date.now();
+      localStorage.setItem(LS_KEY_START, startTime);
+      localStorage.setItem(LS_KEY_WAGE, wage);
+      localStorage.setItem(LS_KEY_ACCUMULATED, 0);
+
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('working').style.display = 'block';
+
+      startTimer(wage, startTime, 0);
+      showPause();
+    }
+
+    function pauseWork() {
+      const startTime = Number(localStorage.getItem(LS_KEY_START));
+      const accumulated = Number(localStorage.getItem(LS_KEY_ACCUMULATED)) || 0;
+      const now = Date.now();
+      const elapsed = now - startTime;
+
+      localStorage.setItem(LS_KEY_ACCUMULATED, accumulated + elapsed);
+      localStorage.removeItem(LS_KEY_START);
+
+      clearInterval(intervalId);
+      intervalId = null;
+
+      showResume();
+    }
+
+    function resumeWork() {
+      const wage = Number(localStorage.getItem(LS_KEY_WAGE));
+      const accumulated = Number(localStorage.getItem(LS_KEY_ACCUMULATED)) || 0;
+      const startTime = Date.now();
+
+      localStorage.setItem(LS_KEY_START, startTime);
+
+      startTimer(wage, startTime, accumulated);
+      showPause();
+    }
+
+    function stopWork() {
+      clearInterval(intervalId);
+      intervalId = null;
+
+      localStorage.removeItem(LS_KEY_START);
+      localStorage.removeItem(LS_KEY_WAGE);
+      localStorage.removeItem(LS_KEY_ACCUMULATED);
+
+      document.getElementById('amount').innerText = '¥0';
+      document.getElementById('working').style.display = 'none';
+      document.getElementById('setup').style.display = 'block';
+      document.getElementById('wage').value = '';
+    }
+
+    function startTimer(wage, startTime, accumulated) {
+      updateAmountDisplay(wage, accumulated + (Date.now() - startTime));
+
+      intervalId = setInterval(() => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+        updateAmountDisplay(wage, accumulated + elapsed);
+      }, 1000);
+    }
+
+    function updateAmountDisplay(wage, elapsedMs) {
+      const hours = elapsedMs / (1000 * 60 * 60);
+      const earned = wage * hours;
+      document.getElementById('amount').innerText = '¥' + earned.toFixed(2);
+    }
+
+    function showPause() {
+      document.getElementById('pauseBtn').style.display = 'inline-block';
+      document.getElementById('resumeBtn').style.display = 'none';
+    }
+
+    function showResume() {
+      document.getElementById('pauseBtn').style.display = 'none';
+      document.getElementById('resumeBtn').style.display = 'inline-block';
+    }
+  </script>
+</body>
+</html>
