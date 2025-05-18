@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>労働中</title>
   <style>
     * {
@@ -17,26 +18,29 @@
       align-items: center;
       justify-content: flex-start;
       min-height: 100vh;
-      padding: 40px 20px;
+      padding: 5vh 5vw;
     }
 
     h1 {
-      font-size: 2.5em;
-      margin-bottom: 30px;
+      font-size: 2em;
+      margin-bottom: 20px;
       color: #2c3e50;
+      text-align: center;
     }
 
     #amount {
-      font-size: 3em;
+      font-size: 2.5em;
       font-weight: bold;
       margin: 20px 0 30px;
       color: #27ae60;
+      word-wrap: break-word;
     }
 
     input[type="number"] {
       padding: 12px 15px;
       font-size: 1.1em;
-      width: 200px;
+      width: 100%;
+      max-width: 300px;
       border: 2px solid #ccc;
       border-radius: 8px;
       margin-bottom: 15px;
@@ -49,7 +53,7 @@
     }
 
     button {
-      padding: 12px 25px;
+      padding: 14px 20px;
       font-size: 1.1em;
       border: none;
       border-radius: 8px;
@@ -57,7 +61,9 @@
       color: white;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
-      margin: 5px;
+      margin: 8px 5px;
+      flex: 1 1 40%;
+      min-width: 120px;
     }
 
     button:hover {
@@ -70,22 +76,39 @@
 
     #setup, #working {
       background: white;
-      padding: 30px;
+      padding: 30px 20px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      min-width: 300px;
+      width: 100%;
+      max-width: 400px;
       text-align: center;
     }
 
     label {
       font-weight: bold;
-      margin-right: 10px;
+      display: block;
+      margin-bottom: 5px;
     }
 
     .button-row {
       display: flex;
-      justify-content: center;
       flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    @media (max-width: 480px) {
+      button {
+        flex: 1 1 100%;
+        margin: 6px 0;
+      }
+
+      #amount {
+        font-size: 2em;
+      }
+
+      h1 {
+        font-size: 1.8em;
+      }
     }
   </style>
 </head>
@@ -93,8 +116,8 @@
   <h1>労働中 💼</h1>
 
   <div id="setup">
-    <label for="wage">時給（円）</label><br>
-    <input type="number" id="wage" min="0" placeholder="例: 1500" /><br>
+    <label for="wage">時給（円）</label>
+    <input type="number" id="wage" min="0" placeholder="例: 1500" />
     <button onclick="startWork()">スタート</button>
   </div>
 
