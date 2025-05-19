@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>労働中</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #f5f5f5;
@@ -16,7 +13,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
       min-height: 100vh;
       padding: 5vh 5vw;
     }
@@ -36,43 +32,29 @@
       word-wrap: break-word;
     }
 
-    input[type="number"] {
-      padding: 12px 15px;
+    input, button {
       font-size: 1.1em;
-      width: 100%;
-      max-width: 300px;
-      border: 2px solid #ccc;
+      padding: 12px;
       border-radius: 8px;
-      margin-bottom: 15px;
-      transition: border 0.2s;
+      border: 2px solid #ccc;
+      margin: 10px 0;
     }
 
-    input[type="number"]:focus {
+    input:focus {
       border-color: #3498db;
       outline: none;
     }
 
     button {
-      padding: 14px 20px;
-      font-size: 1.1em;
-      border: none;
-      border-radius: 8px;
       background: #3498db;
       color: white;
+      border: none;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
-      margin: 8px 5px;
-      flex: 1 1 40%;
-      min-width: 120px;
     }
 
-    button:hover {
-      background: #2980b9;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
+    button:hover { background: #2980b9; }
+    button:active { transform: scale(0.98); }
 
     #setup, #working {
       background: white;
@@ -84,31 +66,15 @@
       text-align: center;
     }
 
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 5px;
-    }
-
     .button-row {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
+      gap: 10px;
     }
 
     @media (max-width: 480px) {
-      button {
-        flex: 1 1 100%;
-        margin: 6px 0;
-      }
-
-      #amount {
-        font-size: 2em;
-      }
-
-      h1 {
-        font-size: 1.8em;
-      }
+      button { width: 100%; }
     }
   </style>
 </head>
@@ -118,7 +84,17 @@
   <div id="setup">
     <label for="wage">時給（円）</label>
     <input type="number" id="wage" min="0" placeholder="例: 1500" />
-    <button onclick="startWork()">スタート</button>
+
+    <div class="button-row">
+      <button onclick="showDatetimePicker()">📅 日時を選択してスタート</button>
+      <button onclick="startNow()">🕒 今からスタート</button>
+    </div>
+
+    <div id="datetimePicker" style="margin-top: 15px; display: none;">
+      <input type="datetime-local" id="customDatetime" />
+      <br>
+      <button onclick="startWithDatetime()">この日時でスタート</button>
+    </div>
   </div>
 
   <div id="working" style="display: none;">
@@ -156,24 +132,61 @@
       }
     };
 
-    function startWork() {
-      const wageInput = document.getElementById('wage');
-      const wage = Number(wageInput.value);
-      if (!wage || wage <= 0) {
-        alert("有効な時給を入力してください");
-        return;
-      }
+    function showDatetimePicker() {
+      document.getElementById('datetimePicker').style.display = 'block';
+    }
+
+    function startNow() {
+      const wage = getWageInput();
+      if (wage === null) return;
 
       const startTime = Date.now();
       localStorage.setItem(LS_KEY_START, startTime);
       localStorage.setItem(LS_KEY_WAGE, wage);
       localStorage.setItem(LS_KEY_ACCUMULATED, 0);
 
-      document.getElementById('setup').style.display = 'none';
-      document.getElementById('working').style.display = 'block';
-
+      beginWorkUI();
       startTimer(wage, startTime, 0);
       showPause();
+    }
+
+    function startWithDatetime() {
+      const wage = getWageInput();
+      if (wage === null) return;
+
+      const datetimeStr = document.getElementById('customDatetime').value;
+      if (!datetimeStr) {
+        alert("日時を選択してください");
+        return;
+      }
+
+      const startTime = new Date(datetimeStr).getTime();
+      if (isNaN(startTime) || startTime > Date.now()) {
+        alert("過去または現在の日時を選んでください");
+        return;
+      }
+
+      localStorage.setItem(LS_KEY_START, startTime);
+      localStorage.setItem(LS_KEY_WAGE, wage);
+      localStorage.setItem(LS_KEY_ACCUMULATED, 0);
+
+      beginWorkUI();
+      startTimer(wage, startTime, 0);
+      showPause();
+    }
+
+    function getWageInput() {
+      const wage = Number(document.getElementById('wage').value);
+      if (!wage || wage <= 0) {
+        alert("有効な時給を入力してください");
+        return null;
+      }
+      return wage;
+    }
+
+    function beginWorkUI() {
+      document.getElementById('setup').style.display = 'none';
+      document.getElementById('working').style.display = 'block';
     }
 
     function pauseWork() {
@@ -214,6 +227,7 @@
       document.getElementById('working').style.display = 'none';
       document.getElementById('setup').style.display = 'block';
       document.getElementById('wage').value = '';
+      document.getElementById('datetimePicker').style.display = 'none';
     }
 
     function startTimer(wage, startTime, accumulated) {
